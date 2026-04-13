@@ -75,6 +75,9 @@ choice
     config MACH_STM32G431
         bool "STM32G431"
         select MACH_STM32G4
+    config MACH_STM32G474
+        bool "STM32G474"
+        select MACH_STM32G4
     config MACH_STM32H723
         bool "STM32H723"
         select MACH_STM32H7
@@ -147,6 +150,7 @@ config MCU
     default "stm32g0b0xx" if MACH_STM32G0B0
     default "stm32g0b1xx" if MACH_STM32G0B1
     default "stm32g431xx" if MACH_STM32G431
+    default "stm32g474xx" if MACH_STM32G474
     default "stm32h723xx" if MACH_STM32H723
     default "stm32h743xx" if MACH_STM32H743
     default "stm32h750xx" if MACH_STM32H750
@@ -163,6 +167,7 @@ config CLOCK_FREQ
     default 180000000 if MACH_STM32F446
     default 64000000 if MACH_STM32G0
     default 150000000 if MACH_STM32G431
+    default 170000000 if MACH_STM32G474
     default 400000000 if MACH_STM32H7 && !MACH_STM32H750
     default 480000000 if MACH_STM32H750
     default 80000000 if MACH_STM32L412
@@ -176,6 +181,7 @@ config FLASH_SIZE
     default 0x40000 if MACH_STM32F2 || MACH_STM32F401 || MACH_STM32H723
     default 0x80000 if MACH_STM32F4x5 || MACH_STM32F446
     default 0x20000 if MACH_STM32G0 || MACH_STM32G431
+    default 0x80000 if MACH_STM32G474    # 512KiB(base from klipper)
     default 0x20000 if MACH_STM32H750
     default 0x200000 if MACH_STM32H743
 
@@ -196,6 +202,7 @@ config RAM_SIZE
     default 0x2800 if MACH_STM32F103x6
     default 0x5000 if MACH_STM32F103 && !MACH_STM32F103x6 # Ram size of stm32f103x8
     default 0x8000 if MACH_STM32G431
+    default 0x20000 if MACH_STM32G474    # 128KiB
     default 0xa000 if MACH_STM32L412
     default 0x20000 if MACH_STM32F207
     default 0x10000 if MACH_STM32F401
