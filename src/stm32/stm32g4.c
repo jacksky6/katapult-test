@@ -135,6 +135,10 @@ clock_setup(void)
     enable_pclock(PWR_BASE);
     PWR->CR3 |= PWR_CR3_APC; // allow gpio pullup/down
 
+    if (CONFIG_CLOCK_FREQ > 150000000)
+    // Enable "range 1 boost" mode
+    PWR->CR5 = 0;
+    
     // Wait for PLL lock
     while (!(RCC->CR & RCC_CR_PLLRDY))
         ;
