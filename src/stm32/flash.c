@@ -33,6 +33,11 @@ flash_get_page_size(uint32_t addr)
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
         return *flash_size <= 64 ? 1024 : 2 * 1024;
     } else if (CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4) {
+        if (CONFIG_MACH_STM32G4) {
+            // if DBANK = 0，single bank (4KB)
+            if (!(FLASH->OPTR & FLASH_OPTR_DBANK))
+                return 4096;
+        }
         return 2 * 1024;
     } else if (CONFIG_MACH_STM32H7) {
         return 128 * 1024;
@@ -110,17 +115,51 @@ erase_page(uint32_t page_address)
     FLASH->CR = FLASH_CR_PER;
     FLASH->AR = page_address;
     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT;
+//fix    
 #elif CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4
-    uint32_t pidx = (page_address - 0x08000000) / (2 * 1024);
-    if (pidx >= 64) {
-        uint16_t *flash_size = (void*)FLASHSIZE_BASE;
-        if (*flash_size <= 256)
-            pidx = pidx + 256 - 64;
-        else
-            pidx = pidx < 128 ? pidx : pidx + 256 - 128;
+    uint32_t page_size = flash_get_page_size(page_address);
+    uint32_t pidx = (page_address - 0x08000000) / page_size;
+    uint32_t cr = FLASH_CR_PER | FLASH_CR_STRT;
+
+    if (CONFIG_MACH_STM32G4) {
+        if (FLASH->OPTR & FLASH_OPTR_DBANK) {
+            // Dual-bank mode (Default for G474)
+            if (pidx >= 128) {
+                // Address is in Bank 2 (after 256KB)
+                // Set the BKER bit and calculate the page index relative to Bank 2
+                cr |= FLASH_CR_BKER | ((pidx - 128) << FLASH_CR_PNB_Pos);
+            } else {
+                // Address is in Bank 1
+                cr |= (pidx << FLASH_CR_PNB_Pos);
+            }
+        } else {
+            // Single-bank mode
+            cr |= (pidx << FLASH_CR_PNB_Pos);
+        }
+    } else {
+        // Maintain legacy STM32G0 logic
+        if (pidx >= 64) {
+            uint16_t *flash_size = (void*)FLASHSIZE_BASE;
+            if (*flash_size <= 256)
+                pidx = pidx + 256 - 64;
+            else
+                pidx = pidx < 128 ? pidx : pidx + 256 - 128;
+        }
+        cr |= (pidx << FLASH_CR_PNB_Pos);
     }
-    pidx = pidx > 0x3ff ? 0x3ff : pidx;
-    FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT | (pidx << FLASH_CR_PNB_Pos);
+    FLASH->CR = cr;
+    
+// #elif CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4
+//     uint32_t pidx = (page_address - 0x08000000) / (2 * 1024);
+//     if (pidx >= 64) {
+//         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
+//         if (*flash_size <= 256)
+//             pidx = pidx + 256 - 64;
+//         else
+//             pidx = pidx < 128 ? pidx : pidx + 256 - 128;
+//     }
+//     pidx = pidx > 0x3ff ? 0x3ff : pidx;
+//     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT | (pidx << FLASH_CR_PNB_Pos);
 #elif CONFIG_MACH_STM32H7
     uint32_t snb = (page_address - 0x08000000) / (128 * 1024);
     snb = snb > 7 ? 7 : snb;
